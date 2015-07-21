@@ -106,6 +106,18 @@ class Graph {
     }
   }
 
+  computeCenterOffset() {
+    const allCenter = this._computeNodesCenter(this.nodes.toArray());
+    const visibleCenter = this._computeNodesCenter(this.nodes.toArray().filter(n => n.display.status != "faded"));
+    return { x: allCenter.x - visibleCenter.x, y: allCenter.y - visibleCenter.y };
+  }
+
+  _computeNodesCenter(nodes) {
+    const xs = nodes.map(i => i.display.x);
+    const ys = nodes.map(i => i.display.y);
+    return { x: (_.min(xs) + _.max(xs))/2, y: (_.min(ys) + _.max(ys))/2 };
+  }
+
   setShrinkFactor(factor) {
     this.display.shrinkFactor = factor;
     return this;

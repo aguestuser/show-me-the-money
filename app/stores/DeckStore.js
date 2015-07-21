@@ -35,14 +35,17 @@ class DeckStore extends Marty.Store {
 
   setCurrentDeck(id){
     this.setState({
-      position: { deck: id, slide: 0 }
+      position: { deck: id, slide: 0 },
     });
   }
 
   setCurrentSlide(index){
+    const oldSlide = this.state.position.slide;
     this.setState({
-      position: { deck: this.state.position.deck, slide: index }
+      position: { deck: this.state.position.deck, slide: index },
     });
+    sessionStorage.setItem('oldSlide', sessionStorage.getItem('newSlide'));
+    sessionStorage.setItem('newSlide', index);
   }
 
   incrementSlide(){
@@ -102,6 +105,16 @@ class DeckStore extends Marty.Store {
 
   getCurrentGraphId() {
     return this.getCurrentDeck().graphIds[this.state.position.slide];
+  }
+
+  getOldGraphId() {
+    const deck = this.getDeckById(this.state.position.deck);
+
+    if (!deck) {
+      return;
+    }
+
+    return deck.graphIds[sessionStorage.getItem('oldSlide')];
   }
 
   zoom(scale) {

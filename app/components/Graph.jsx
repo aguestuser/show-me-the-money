@@ -10,24 +10,31 @@ class Graph extends BaseComponent {
     super();
   }
 
-  render(){
+  render() {
     const sp = this._getSvgParams(this.props.graph);
+    const offset = this.props.newCenter;
+    const transform = offset ? `translate(${offset.x}, ${offset.y})` : null;
+    const oldCenter = this.props.oldCenter ? (this.props.oldCenter.x + "," + this.props.oldCenter.y) : null;
+    const newCenter = this.props.newCenter ? (this.props.newCenter.x + "," + this.props.newCenter.y) : null;
+    console.log(oldCenter, newCenter);
 
     return (
-      <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" className="Graph" width='100%' height='100%' viewBox={sp.viewBox} preserveAspectRatio="xMinYMin">
-        <Draggable
-          handle="#zoom-handle"
-          moveOnStartChange={false}
-          zIndex={100} >
-
-          <g id="zoom">
-            <rect id="zoom-handle" x="-5000" y="-5000" width="10000" height="10000" fill="#fff" />
-            { sp.edges }
-            { sp.nodes }
-            { sp.captions }
-          </g>
-
-        </Draggable>
+      <svg 
+        version="1.1" 
+        xmlns="http://www.w3.org/2000/svg" 
+        xlink="http://www.w3.org/1999/xlink" 
+        className="Graph" 
+        width='100%' 
+        height='100%' 
+        viewBox={sp.viewBox} 
+        preserveAspectRatio="xMinYMin">
+        <g id="zoom" transform={transform}>
+          <defs dangerouslySetInnerHTML={ { __html: `<animateTransform xlink:href="#zoom" attributeName="transform" attributeType="XML" type="translate" from="${oldCenter}" to="${newCenter}" dur="2s" />` } } />
+          <rect id="zoom-handle" x="-5000" y="-5000" width="10000" height="10000" fill="#fff" />
+          { sp.edges }
+          { sp.nodes }
+          { sp.captions }
+        </g>
         <defs dangerouslySetInnerHTML={ { __html: sp.markers } }/>
       </svg>
     );
@@ -57,6 +64,26 @@ class Graph extends BaseComponent {
 module.exports = Marty.createContainer(Graph, {
   listenTo: ['deckStore'],
   fetch: {
+    oldCenter() {
+      const graphId = this.app.deckStore.getOldGraphId();
+
+      if (!graphId) {
+        return;
+      }
+
+      const graph = this.app.graphStore.getGraph(graphId);
+      return graph.result.computeCenterOffset();
+    },
+    newCenter() {
+      const graphId = this.app.deckStore.getCurrentGraphId();
+
+      if (!graphId) {
+        return;
+      }
+
+      const graph = this.app.graphStore.getGraph(graphId);
+      return graph.result.computeCenterOffset();
+    },
     shrinkFactor() {
       return this.app.deckStore.getShrinkFactor();
     }
