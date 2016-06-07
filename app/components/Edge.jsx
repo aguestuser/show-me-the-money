@@ -105,6 +105,7 @@ export default class Edge extends BaseComponent {
     let cy = this._startPosition.y + deltaY;
 
     this.setState({ cx, cy });
+    
   }
 
   _handleDragStop(e, ui) {

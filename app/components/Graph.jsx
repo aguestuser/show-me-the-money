@@ -16,7 +16,7 @@ import filter from 'lodash/collection/filter';
 export default class Graph extends BaseComponent {
   constructor(props) {
     super(props);
-    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop');
+    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleDragGroupStart', '_handleDragGroup', '_handleDragGroupStop');
     this.nodes = {};
     this.edges = {};
     this.mounted = false;
@@ -85,7 +85,10 @@ export default class Graph extends BaseComponent {
         selected={this.props.selection && includes(this.props.selection.nodeIds, n.id)}
         clickNode={this.props.clickNode} 
         moveNode={this.props.moveNode} 
-        isLocked={this.props.isLocked} />);
+        isLocked={this.props.isLocked}
+        onStart={this._handleDragGroupStart}
+        onDrag={this._handleDragGroup}
+        onStop={this._handleDragGroupStop} />);
   }
 
   _renderCaptions() {
@@ -215,6 +218,42 @@ export default class Graph extends BaseComponent {
     let y = deltaY + this._startPosition.y;
     return { x, y };
   }
+
+  //GROUP DRAGGING
+  // keep initial position for comparison with drag position
+  _handleDragGroupStart(e, ui, that) {
+    var theSelection = this.props.selection;
+    var nodes = theSelection["nodeIds"];
+    var selectedNodes = _.filter(this.nodes, function(d){
+      return _.indexOf(nodes, d.props.node["id"]) != -1;
+    })
+    _.forEach(selectedNodes, function(d){
+      d._doDragStart(e, ui);
+    })
+  }
+
+  _handleDragGroup(e, ui, that) {
+    var theSelection = this.props.selection;
+    var nodes = theSelection["nodeIds"];
+    var selectedNodes = _.filter(this.nodes, function(d){
+      return _.indexOf(nodes, d.props.node["id"]) != -1;
+    })
+    _.forEach(selectedNodes, function(d){
+      d._doDrag(e, ui, true);
+    })
+  }
+
+  _handleDragGroupStop(e, ui, that) {
+    var theSelection = this.props.selection;
+    var nodes = theSelection["nodeIds"];
+    var selectedNodes = _.filter(this.nodes, function(d){
+      return _.indexOf(nodes, d.props.node["id"]) != -1;
+    })
+    _.forEach(selectedNodes, function(d){
+      d._doDragStop(e, ui);
+    })
+  }
+
 
 
   // TRANSITION ANIMATION

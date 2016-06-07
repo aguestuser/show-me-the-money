@@ -12,7 +12,7 @@ import Helpers from '../models/Helpers';
 export default class Node extends BaseComponent {
   constructor(props) {
     super(props);
-    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleClick', '_doDragStart');
+    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_doDragStart', '_doDrag', '_doDragStop', '_handleClick');
     this.state = props.node.display;
   }
 
@@ -47,66 +47,82 @@ export default class Node extends BaseComponent {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
+    // return true;
     return nextProps.selected !== this.props.selected || 
            JSON.stringify(nextState) !== JSON.stringify(this.state);
   }
 
   // keep initial position for comparison with drag position
   _handleDragStart(e, ui) {
-    var theSelection = this.graph.props.selection.nodeIds;
-    if (!this.graph.props.showEditTools){
-      this._doDragStart(e, ui);
+    if (!this.graph.props.showEditTools || !this.props.selected) {
+        this._doDragStart(e, ui);
     } else {
-      var selectedNodes = _.filter(this.graph.nodes, function(node){
-        return _.indexOf(theSelection, node.props.node.id) != -1;
-      })
-      _.forEach(selectedNodes, function(node){
-        node._doDragStart(e, ui);
-      })
+      this.props.onStart(e, ui, this);
     }
   }
 
   _doDragStart(e, ui) {
-    this._startDrag = ui.position;
-    this._startPosition = {
-      x: this.state.x,
-      y: this.state.y
-    };
+     this._startDrag = ui.position;
+        this._startPosition = {
+          x: this.state.x,
+          y: this.state.y
+        };
   }
 
   // while dragging node and its edges are updated only in state, not store
   _handleDrag(e, ui) {
-    console.log(this.props.node)
 
     if (this.props.isLocked) return;
+    if (!this.graph.props.showEditTools || !this.props.selected) {
+      this._doDrag(e, ui, false);
+    } else {
+      this.props.onDrag(e, ui, this);
+    }
+  }
 
-    this._dragging = true; // so that _handleClick knows it's not just a click
+  _doDrag(e, ui, isMultiple) {
+      this._dragging = true; // so that _handleClick knows it's not just a click
 
-    let n = this.props.node;
+      let n = this.props.node;
+      let deltaX = (ui.position.clientX - this._startDrag.clientX) / this.graph.state.actualZoom;
+      let deltaY = (ui.position.clientY - this._startDrag.clientY) / this.graph.state.actualZoom;
+      let x = this._startPosition.x + deltaX;
+      let y = this._startPosition.y + deltaY;
 
-    let deltaX = (ui.position.clientX - this._startDrag.clientX) / this.graph.state.actualZoom;
-    let deltaY = (ui.position.clientY - this._startDrag.clientY) / this.graph.state.actualZoom;
-    let x = this._startPosition.x + deltaX;
-    let y = this._startPosition.y + deltaY;
+      this.setState({ x, y });
 
-    this.setState({ x, y });
+      // update state of connecting edges
+      let edges = Graph.edgesConnectedToNode(this.props.graph, n.id);
 
-    // update state of connecting edges
-    let edges = Graph.edgesConnectedToNode(this.props.graph, n.id);
+      edges.forEach(edge => {
+        let thisNodeNum = edge.node1_id == n.id ? 1 : 2;
+        let newEdge = Graph.moveEdgeNode(edge, thisNodeNum, x, y);
+        this.graph.edges[edge.id].setState(newEdge.display);
+      });
 
-    edges.forEach(edge => {
-      let thisNodeNum = edge.node1_id == n.id ? 1 : 2;
-      let newEdge = Graph.moveEdgeNode(edge, thisNodeNum, x, y);
-      this.graph.edges[edge.id].setState(newEdge.display);
-    });
+      //update throughout drag so nodes know their siblings' positions when
+      //multiple nodes are dragged simultaneously
+      if (isMultiple){
+        if (this._dragging) {
+          this.props.moveNode(this.props.node.id, this.state.x, this.state.y);
+        }
+      }
   }
 
   // store updated once dragging is done
   _handleDragStop(e, ui) {
     // event fires every mouseup so we check for actual drag before updating store
-    if (this._dragging) {
-      this.props.moveNode(this.props.node.id, this.state.x, this.state.y);
+    if (!this.graph.props.showEditTools || !this.props.selected) {
+      this._doDragStop(e, ui);
+    } else {
+      this.props.onStop(e, ui, this);
     }
+  }
+
+  _doDragStop(e, ui){
+     if (this._dragging) {
+        this.props.moveNode(this.props.node.id, this.state.x, this.state.y);
+      }
   }
 
   _handleClick() {
