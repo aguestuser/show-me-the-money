@@ -16,7 +16,7 @@ import filter from 'lodash/collection/filter';
 export default class Graph extends BaseComponent {
   constructor(props) {
     super(props);
-    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleNodeDragStart', '_handleNodeDrag', '_handleNodeDragStop');
+    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop');
     this.nodes = {};
     this.edges = {};
     this.mounted = false;
@@ -85,10 +85,7 @@ export default class Graph extends BaseComponent {
         selected={this.props.selection && includes(this.props.selection.nodeIds, n.id)}
         clickNode={this.props.clickNode} 
         moveNode={this.props.moveNode} 
-        isLocked={this.props.isLocked}
-        onGroupStart={this._handleNodeDragStart}
-        onGroupDrag={this._handleNodeDrag}
-        onGroupStop={this._handleNodeDragStop} />);
+        isLocked={this.props.isLocked} />);
   }
 
   _renderCaptions() {
@@ -219,50 +216,6 @@ export default class Graph extends BaseComponent {
     return { x, y };
   }
 
-  //NODE DRAGGING
-
-  // keep initial position for comparison with drag position
-  _handleNodeDragStart(e, ui, that) {
-    console.log(e);
-    that._startDrag = ui.position;
-    that._startPosition = {
-      x: that.state.x,
-      y: that.state.y
-    };
-  }
-
-  // while dragging node and its edges are updated only in state, not store
-  _handleNodeDrag(e, ui, that) {
-    if (this.props.isLocked) return;
-
-    that._dragging = true; // so that _handleClick knows it's not just a click
-
-    let n = that.props.node;
-    let deltaX = (ui.position.clientX - that._startDrag.clientX) / that.graph.state.actualZoom;
-    let deltaY = (ui.position.clientY - that._startDrag.clientY) / that.graph.state.actualZoom;
-    let x = that._startPosition.x + deltaX;
-    let y = that._startPosition.y + deltaY;
-
-    that.setState({ x, y });
-
-
-    // update state of connecting edges
-    let edges = GraphModel.edgesConnectedToNode(that.props.graph, n.id);
-
-    edges.forEach(edge => {
-      let thisNodeNum = edge.node1_id == n.id ? 1 : 2;
-      let newEdge = GraphModel.moveEdgeNode(edge, thisNodeNum, x, y);
-      that.graph.edges[edge.id].setState(newEdge.display);
-    });
-  }
-
-  // store updated once dragging is done
-  _handleNodeDragStop(e, ui, that) {
-    // event fires every mouseup so we check for actual drag before updating store
-    if (that._dragging) {
-      that.props.moveNode(that.props.node.id, that.state.x, that.state.y);
-    }
-  }
 
   // TRANSITION ANIMATION
 
