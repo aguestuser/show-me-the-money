@@ -16,7 +16,7 @@ import filter from 'lodash/collection/filter';
 export default class Graph extends BaseComponent {
   constructor(props) {
     super(props);
-    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleDragGroupStart', '_handleDragGroup', '_handleDragGroupStop');
+    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleDragGroupStart', '_handleDragGroup', '_handleDragGroupStop', '_manageDragStage');
     this.nodes = {};
     this.edges = {};
     this.captions = {};
@@ -229,88 +229,42 @@ export default class Graph extends BaseComponent {
   //GROUP DRAGGING
   // keep initial position for comparison with drag position
   _handleDragGroupStart(e, ui, that) {
-    var theSelection = this.props.selection;
-    var nodes = theSelection["nodeIds"];
-    var selectedNodes = _.filter(this.nodes, function(d){
-      return _.indexOf(nodes, d.props.node["id"]) != -1;
-    })
-    _.forEach(selectedNodes, function(d){
-      d._doDragStart(e, ui);
-    })
-
-    var captions = theSelection["captionIds"];
-    var selectedCaptions = _.filter(this.captions, function(d){
-      return _.indexOf(captions, d.props.caption["id"]) != -1;
-    })
-    _.forEach(selectedCaptions, function(d){
-      d._doDragStart(e, ui);
-    })
-
-    var edges = theSelection["edgeIds"];
-    var selectedEdges = _.filter(this.edges, function(d){
-      return _.indexOf(edges, d.props.edge["id"]) != -1;
-    })
-    _.forEach(selectedEdges, function(d){
-      d._doDragStart(e, ui);
-    })
+     this._manageDragStage(e, ui, that, "start");
   }
 
   _handleDragGroup(e, ui, that) {
-    var theSelection = this.props.selection;
-    var nodes = theSelection["nodeIds"];
-    var selectedNodes = _.filter(this.nodes, function(d){
-      return _.indexOf(nodes, d.props.node["id"]) != -1;
-    })
-    _.forEach(selectedNodes, function(d){
-      d._doDrag(e, ui, true);
-    })
-
-    var captions = theSelection["captionIds"];
-    var selectedCaptions = _.filter(this.captions, function(d){
-      return _.indexOf(captions, d.props.caption["id"]) != -1;
-    })
-    _.forEach(selectedCaptions, function(d){
-      d._doDrag(e, ui, true);
-    })
-
-    var edges = theSelection["edgeIds"];
-    var selectedEdges = _.filter(this.edges, function(d){
-      return _.indexOf(edges, d.props.edge["id"]) != -1;
-    })
-    _.forEach(selectedEdges, function(d){
-      d._doDrag(e, ui, true);
-    })
+    this._manageDragStage(e, ui, that, "drag");
   }
 
   _handleDragGroupStop(e, ui, that) {
-    var theSelection = this.props.selection;
-    var nodes = theSelection["nodeIds"];
-    var selectedNodes = _.filter(this.nodes, function(d){
-      return _.indexOf(nodes, d.props.node["id"]) != -1;
-    })
-    _.forEach(selectedNodes, function(d){
-      d._doDragStop(e, ui);
-    })
-
-    var captions = theSelection["captionIds"];
-    var selectedCaptions = _.filter(this.captions, function(d){
-      return _.indexOf(captions, d.props.caption["id"]) != -1;
-    })
-    _.forEach(selectedCaptions, function(d){
-      d._doDragStop(e, ui);
-    })
-
-    var edges = theSelection["edgeIds"];
-    var selectedEdges = _.filter(this.edges, function(d){
-      return _.indexOf(edges, d.props.edge["id"]) != -1;
-    })
-    _.forEach(selectedEdges, function(d){
-      d._doDragStop(e, ui);
-    })
-
-
+    this._manageDragStage(e, ui, that, "stop");
   }
 
+  _manageDragStage(e, ui, that, stage){
+    var theSelection = this.props.selection;
+    var elements = ["node", "caption", "edge"];
+    //cycle through elements and move selected elements
+    for (var i = 0; i < elements.length; i++){
+      var thisElement = theSelection[elements[i] + "Ids"];
+      var selectedElements = _.filter(this[elements[i] + "s"], function(d){
+        return _.indexOf(thisElement, d.props[elements[i]]["id"]) != -1;
+      })
+
+      if (stage == "start"){
+        _.forEach(selectedElements, function(d){
+          d._doDragStart(e, ui);
+        })
+      } else if (stage == "drag"){
+        _.forEach(selectedElements, function(d){
+          d._doDrag(e, ui, true);
+        })
+      } else {
+        _.forEach(selectedElements, function(d){
+          d._doDragStop(e, ui);
+        })
+      }
+    }
+  }
 
 
   // TRANSITION ANIMATION

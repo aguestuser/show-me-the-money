@@ -54,7 +54,8 @@ export default class Node extends BaseComponent {
 
   // keep initial position for comparison with drag position
   _handleDragStart(e, ui) {
-    if (!this.graph.props.showEditTools || !this.props.selected) {
+    var isOnlyOne = (this.graph.props.selection["nodeIds"].length + this.graph.props.selection["captionIds"].length + this.graph.props.selection["edgeIds"].length) < 2;
+    if (!this.graph.props.showEditTools || !this.props.selected || isOnlyOne) {
         this._doDragStart(e, ui);
     } else {
       this.props.onStart(e, ui, this);
@@ -62,18 +63,20 @@ export default class Node extends BaseComponent {
   }
 
   _doDragStart(e, ui) {
-     this._startDrag = ui.position;
-        this._startPosition = {
-          x: this.state.x,
-          y: this.state.y
-        };
+    this._startDrag = ui.position;
+    this._startPosition = {
+      x: this.state.x,
+      y: this.state.y
+    };
   }
 
   // while dragging node and its edges are updated only in state, not store
   _handleDrag(e, ui) {
 
     if (this.props.isLocked) return;
-    if (!this.graph.props.showEditTools || !this.props.selected) {
+
+    var isOnlyOne = (this.graph.props.selection["nodeIds"].length + this.graph.props.selection["captionIds"].length + this.graph.props.selection["edgeIds"].length) < 2;
+    if (!this.graph.props.showEditTools || !this.props.selected || isOnlyOne) {
       this._doDrag(e, ui, false);
     } else {
       this.props.onDrag(e, ui, this);
@@ -112,7 +115,8 @@ export default class Node extends BaseComponent {
   // store updated once dragging is done
   _handleDragStop(e, ui) {
     // event fires every mouseup so we check for actual drag before updating store
-    if (!this.graph.props.showEditTools || !this.props.selected) {
+    var isOnlyOne = (this.graph.props.selection["nodeIds"].length + this.graph.props.selection["captionIds"].length + this.graph.props.selection["edgeIds"].length) < 2;
+    if (!this.graph.props.showEditTools || !this.props.selected || isOnlyOne) {
       this._doDragStop(e, ui);
     } else {
       this.props.onStop(e, ui, this);
