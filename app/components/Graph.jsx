@@ -19,6 +19,7 @@ export default class Graph extends BaseComponent {
     this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleDragGroupStart', '_handleDragGroup', '_handleDragGroupStop');
     this.nodes = {};
     this.edges = {};
+    this.captions = {};
     this.mounted = false;
     let viewBox = this._computeViewbox(props.graph, props.zoom, props.viewOnlyHighlighted);
     this.state = { x: 0, y: 0, viewBox, height: props.height };
@@ -94,14 +95,17 @@ export default class Graph extends BaseComponent {
   _renderCaptions() {
     return values(this.props.graph.captions).map((c, i) => 
       <Caption 
-        ref={(c) => { if (c) { c.graph = this; } }}
+        ref={(a) => { this.captions[c.id] = a; if (a) { a.graph = this; }} }
         key={c.id} 
         caption={c}
         graphId={this.props.graph.id}
         selected={this.props.selection && includes(this.props.selection.captionIds, c.id)}
         moveCaption={this.props.moveCaption} 
         clickCaption={this.props.clickCaption} 
-        isLocked={this.props.isLocked} />);
+        isLocked={this.props.isLocked}
+        onStart={this._handleDragGroupStart}
+        onDrag={this._handleDragGroup}
+        onStop={this._handleDragGroupStop} />);
   }
 
   _renderMarkers() {
@@ -230,6 +234,14 @@ export default class Graph extends BaseComponent {
     _.forEach(selectedNodes, function(d){
       d._doDragStart(e, ui);
     })
+
+    var captions = theSelection["captionIds"];
+    var selectedCaptions = _.filter(this.captions, function(d){
+      return _.indexOf(captions, d.props.caption["id"]) != -1;
+    })
+    _.forEach(selectedCaptions, function(d){
+      d._doDragStart(e, ui);
+    })
   }
 
   _handleDragGroup(e, ui, that) {
@@ -241,6 +253,16 @@ export default class Graph extends BaseComponent {
     _.forEach(selectedNodes, function(d){
       d._doDrag(e, ui, true);
     })
+
+    var captions = theSelection["captionIds"];
+    var selectedCaptions = _.filter(this.captions, function(d){
+      return _.indexOf(captions, d.props.caption["id"]) != -1;
+    })
+    _.forEach(selectedCaptions, function(d){
+      d._doDrag(e, ui, true);
+    })
+    
+
   }
 
   _handleDragGroupStop(e, ui, that) {
@@ -252,6 +274,16 @@ export default class Graph extends BaseComponent {
     _.forEach(selectedNodes, function(d){
       d._doDragStop(e, ui);
     })
+
+    var captions = theSelection["captionIds"];
+    var selectedCaptions = _.filter(this.captions, function(d){
+      return _.indexOf(captions, d.props.caption["id"]) != -1;
+    })
+    _.forEach(selectedCaptions, function(d){
+      d._doDragStop(e, ui);
+    })
+
+
   }
 
 
