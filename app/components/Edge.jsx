@@ -93,7 +93,7 @@ export default class Edge extends BaseComponent {
     }
   }
 
-  _doDrag(event, ui) {
+  _doDrag(event, ui, isMultiple) {
     if (this.props.isLocked) return;
 
     this._dragging = true; // so that _handleClick knows it's not just a click
@@ -105,6 +105,12 @@ export default class Edge extends BaseComponent {
     let cy = this._startPosition.y + deltaY;
 
     this.setState({ cx, cy });
+
+    if (isMultiple){
+      if (this._dragging) {
+        this.props.moveEdge(this.props.edge.id, this.state.cx, this.state.cy);
+      }
+    }
   }
 
   _doDragStop(event, ui) {
@@ -115,26 +121,26 @@ export default class Edge extends BaseComponent {
 
   _handleDragStart(event, ui) {
     if (!this.graph.props.showEditTools || !this.props.selected) {
-      this._doDragStart(e, ui);
+      this._doDragStart(event, ui, false);
     } else {
-      console.log("hiii");
+      this.props.onStart(event, ui, this);
     }
   }
 
   _handleDrag(event, ui) {
     if (!this.graph.props.showEditTools || !this.props.selected) {
-      this._doDrag(e, ui);
+      this._doDrag(event, ui);
     } else {
-      console.log("hiii");
+      this.props.onDrag(event, ui, this);
     }
   }
 
   _handleDragStop(e, ui) {
     // event fires every mouseup so we check for actual drag before updating store
     if (!this.graph.props.showEditTools || !this.props.selected) {
-      this._doDragStop(e, ui);
+      this._doDragStop(event, ui);
     } else {
-      console.log("hiii");
+      this.props.onStop(event, ui, this);
     }
   }
 

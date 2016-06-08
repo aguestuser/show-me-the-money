@@ -72,7 +72,10 @@ export default class Graph extends BaseComponent {
         selected={this.props.selection && includes(this.props.selection.edgeIds, e.id)}
         clickEdge={this.props.clickEdge}
         moveEdge={this.props.moveEdge} 
-        isLocked={this.props.isLocked} />);
+        isLocked={this.props.isLocked}
+        onStart={this._handleDragGroupStart}
+        onDrag={this._handleDragGroup}
+        onStop={this._handleDragGroupStop} />);
   }
 
   _renderNodes() {
@@ -242,6 +245,14 @@ export default class Graph extends BaseComponent {
     _.forEach(selectedCaptions, function(d){
       d._doDragStart(e, ui);
     })
+
+    var edges = theSelection["edgeIds"];
+    var selectedEdges = _.filter(this.edges, function(d){
+      return _.indexOf(edges, d.props.edge["id"]) != -1;
+    })
+    _.forEach(selectedEdges, function(d){
+      d._doDragStart(e, ui);
+    })
   }
 
   _handleDragGroup(e, ui, that) {
@@ -261,8 +272,14 @@ export default class Graph extends BaseComponent {
     _.forEach(selectedCaptions, function(d){
       d._doDrag(e, ui, true);
     })
-    
 
+    var edges = theSelection["edgeIds"];
+    var selectedEdges = _.filter(this.edges, function(d){
+      return _.indexOf(edges, d.props.edge["id"]) != -1;
+    })
+    _.forEach(selectedEdges, function(d){
+      d._doDrag(e, ui, true);
+    })
   }
 
   _handleDragGroupStop(e, ui, that) {
@@ -280,6 +297,14 @@ export default class Graph extends BaseComponent {
       return _.indexOf(captions, d.props.caption["id"]) != -1;
     })
     _.forEach(selectedCaptions, function(d){
+      d._doDragStop(e, ui);
+    })
+
+    var edges = theSelection["edgeIds"];
+    var selectedEdges = _.filter(this.edges, function(d){
+      return _.indexOf(edges, d.props.edge["id"]) != -1;
+    })
+    _.forEach(selectedEdges, function(d){
       d._doDragStop(e, ui);
     })
 
