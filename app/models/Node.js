@@ -1,33 +1,27 @@
-const helpers = require('./helpers/GraphHelpers');
-const _ = require('lodash');
-
-var defaults =  {
-  display: {
-    x: 100,
-    y: 100,
-    name: 'Node',
-    scale: 1,
-    status: "normal"
-  }
-};
+import merge from 'lodash/object/merge';
+import isNumber from 'lodash/lang/isNumber';
+import Helpers from './Helpers';
 
 class Node {
- //constructor(NodeSpecs) -> Node
-  constructor(specs){
-    this.id = specs.id || helpers.generateId();
-    this.content = specs.content;
-    this.adj = specs.adj || [];
-    this.display = _.merge({}, defaults.display, specs.display);
-    this.sourceUrl = specs.sourceUrl;
+  static defaults() {
+    return {
+      id: Helpers.generateId(),
+      display: {
+        x: 0,
+        y: 0,
+        scale: 1,
+        status: "normal"
+      }
+    };    
+  }
+
+  static setDefaults(node) {
+    return merge({}, this.defaults(), node);
+  }
+
+  static hasPosition(node) {
+    return isNumber(node.display.x) && isNumber(node.display.y);
   }
 }
 
 module.exports = Node;
-
-//NodeSpecs
-// {
-//   id: Int,
-//   adj: [],
-//   content: {},
-//   display: {}
-// }
