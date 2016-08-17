@@ -230,3 +230,4 @@ class Oligrapher {
 };
 
 module.exports = Oligrapher;
+

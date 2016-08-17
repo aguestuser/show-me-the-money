@@ -81,6 +81,7 @@ export default class Caption extends BaseComponent {
 
   // keep initial position for comparison with drag position
   _handleDragStart(e, ui) {
+    e.preventDefault();
     var isOnlyOne = (this.graph.props.selection["nodeIds"].length + this.graph.props.selection["captionIds"].length + this.graph.props.selection["edgeIds"].length) < 2;
     if (!this.graph.props.showEditTools || !this.props.selected || isOnlyOne) {
         this._doDragStart(e, ui);
