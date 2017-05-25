@@ -1,155 +1,101 @@
-const React = require('react');
-const BaseComponent = require('./BaseComponent');
-const Draggable = require('react-draggable');
-const Marty = require('marty');
-const ds = require('../NodeDisplaySettings');
-const config = require('../../config');
+import PropTypes from 'prop-types';
+import React, { Component } from 'react';
+import BaseComponent from './BaseComponent';
+import NodeLabel from './NodeLabel';
+import NodeCircle from './NodeCircle';
+import ds from '../NodeDisplaySettings';
+import { DraggableCore } from 'react-draggable';
+import Graph from '../models/Graph';
+import merge from 'lodash/merge';
+import classNames from 'classnames';
+import Helpers from '../models/Helpers';
+import { calculateDeltas } from '../helpers';
 
-class Node extends BaseComponent {
-  constructor(){
-    super();
-    this.displayName = "Node";
-    this.bindAll('_handleDrag', '_handleClick');
+export default class Node extends BaseComponent {
+  constructor(props) {
+    super(props);
+    this.bindAll('_handleDragStart', '_handleDrag', '_handleDragStop', '_handleClick');
+    this.state = props.node.display;
   }
 
   render() {
     const n = this.props.node;
-    const sp = this._getSvgParams(n);
+    const { x, y, name } = this.state;
+    const groupId = `node-${n.id}`;
+    const transform = `translate(${x}, ${y})`;
 
     return (
-      <g id={sp.groupId} transform={sp.transform}>
-        {sp.bgCircle}
-        {sp.circle}
-        {sp.rects}
-        {sp.tspans}
-      </g>
+      <DraggableCore
+        handle=".handle"
+        onStart={this._handleDragStart}
+        onDrag={this._handleDrag}
+        onStop={this._handleDragStop} >
+        <g 
+          id={groupId} 
+          className="node" 
+          transform={transform}
+          onClick={this._handleClick}>
+          <NodeCircle node={n} selected={this.props.selected} />
+          { this.state.name ?  <NodeLabel node={n} /> : null }
+        </g>
+      </DraggableCore>
     );
   }
 
-  _handleDrag(e, ui) {
-    this.app.graphActions.moveNode(this.props.node.id, ui.position);
+  componentWillReceiveProps(props) {
+    let newState = merge({ name: null, image: null, url: null }, props.node.display);
+    this.setState(newState);
   }
 
-  _handleClick(node){
-    //TODO -- add conditional handling
-    this.app.graphActions.clickNode(this.props.node.id);
+  shouldComponentUpdate(nextProps, nextState) {
+    return nextProps.selected !== this.props.selected || 
+           JSON.stringify(nextState) !== JSON.stringify(this.state);
   }
 
-  _getSvgParams(node) {
-    let n = node;
-    let r = ds.circleRadius * n.display.scale;
-    let textOffsetY = ds.textMarginTop + r;
-    let textLines = this._textLines(n.display.name);
-    const linkAttributes = `xlink:href="${this.props.node.sourceUrl}" target="_blank"`;
-    
-    let tspans = config.externalNodeLinks ?
-      <g dangerouslySetInnerHTML={ { __html: (`<a class="nodeLabel" ${linkAttributes}><text text-anchor="middle">` + 
-          textLines.map((line, i) => {
-             let dy = (i == 0 ? textOffsetY : ds.lineHeight);
-             return `<tspan class="node-text-line" x="0" dy="${dy}" fill="${ds.textColor[n.display.status]}">${line}</tspan>`;
-           }) + `</text></a>`)
-      } } /> 
-      : 
-      (<a className="nodeLabel" onClick={this._handleClick}><text textAnchor="middle">
-        { textLines.map(
-           (line, i) => {
-             let dy = (i == 0 ? textOffsetY : ds.lineHeight);
-             return <tspan className="node-text-line" x="0" dy={dy} fill={ds.textColor[n.display.status]}>{line}</tspan>;
-           }) }
-      </text></a>);
+  // keep initial position for comparison with drag position
+  _handleDragStart(e, data) {
+    e.preventDefault();
+      this._startDrag = data;
+      this._startPosition = {
+          x: this.state.x,
+          y: this.state.y
+      }
+  }
 
-    let rects = textLines.map(
-      (line, i) => {
-        let width = line.length * 8;
-        let height = ds.lineHeight;
-        let y = r + 5 + (i * ds.lineHeight);
-        return (<rect fill="#fff"
-                      opacity="0.8"
-                      rx={ds.cornerRadius}
-                      ry={ds.cornerRadius}
-                      x={-width/2}
-                      width={width}
-                      height={height}
-                      y={y} />);
+  // while dragging node and its edges are updated only in state, not store
+  _handleDrag(e, data) {
+    if (this.props.isLocked) return;
+
+    this._dragging = true; // so that _handleClick knows it's not just a click
+
+    let n = this.props.node;
+
+    let { x, y } = calculateDeltas(data, this._startPosition, this._startDrag, this.graph.state.actualZoom);
+    this.setState({ x, y });
+
+    // update state of connecting edges
+    let edges = Graph.edgesConnectedToNode(this.props.graph, n.id);
+
+    edges.forEach(edge => {
+      let thisNodeNum = edge.node1_id == n.id ? 1 : 2;
+      let newEdge = Graph.moveEdgeNode(edge, thisNodeNum, x, y);
+      this.graph.edges[edge.id].setState(newEdge.display);
     });
-
-    let clipId = `image-clip-${n.id}`;
-    let clipPath = `url(#${clipId})`;
-    let imageWidth = r * ds.imageScale;
-    let imageOpacity = ds.imageOpacity[n.display.status];
-    let innerHTML = { __html:
-                      `<clipPath id="${clipId}">
-                         <circle r="${r}" opacity="1"></circle>
-                       </clipPath>
-                       <image
-                         class="handle"
-                         x="${-imageWidth/2}"
-                         y="${-imageWidth/2}"
-                         xlink:href="${n.display.image}"
-                         height="${imageWidth}"
-                         width="${imageWidth}"
-                         opacity="${imageOpacity}"
-                         clip-path="${clipPath}">
-                       </image>` };
-
-    const circle =
-      n.display.image ?
-        <g dangerouslySetInnerHTML={innerHTML} /> :
-        <circle className="handle"
-                r={r}
-                fill={ds.circleColor[n.display.status]}
-                opacity="1">
-        </circle>;
-
-    const bgColor = ds.bgColor[n.display.status];
-    const bgOpacity = ds.bgOpacity[n.display.status];
-    const bgRadius = r + (ds.bgRadiusDiff * n.display.scale);
-    const bgCircle = <circle className="node-background" r={bgRadius} fill={bgColor} opacity={bgOpacity}></circle>;
-
-    return {
-      groupId: `node-${n.id}`,
-      circle: circle,
-      rects: rects,
-      tspans: tspans,
-      bgCircle: bgCircle,
-      transform: `translate(${n.display.x}, ${n.display.y})`
-    };
   }
 
-  _textLines(text){
-    const maxWidth = text.length > 40 ? 30 : 20;
-    let words = text.trim().split(" "),
-        wordCount = words.length,
-        word,
-        lines = [],
-        lineNumber = 1,
-        line = "",
-        lineWords = [],
-        wordNumber = 1;
-
-    while (word = words.shift()) {
-      lineWords.push(word);
-      line = lineWords.join(" ");
-
-      if (line.length > maxWidth) {
-        lineWords.pop();
-        line = lineWords.join(" ");
-        lines.push(line);
-        lineNumber += 1;
-        lineWords = [word];
-      }
+  // store updated once dragging is done
+  _handleDragStop(e, data) {
+    // event fires every mouseup so we check for actual drag before updating store
+    if (this._dragging) {
+      this.props.moveNode(this.props.node.id, this.state.x, this.state.y);
     }
+  }
 
-    if (line = lineWords.join(" ")) {
-      if (line.length < 4) {
-        lines.push(lines.pop() + " " + line);
-      } else {
-        lines.push(line);
-      }
+  _handleClick() {
+    if (this._dragging) {
+      this._dragging = false;
+    } else if (this.props.clickNode) {
+      this.props.clickNode(this.props.node.id);
     }
-
-    return lines;
   }
 }
-
-module.exports = Marty.createContainer(Node);

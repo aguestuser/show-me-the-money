@@ -2,11 +2,6 @@
 logs
 *.log
 
-# Build files
-!build/
-build/*
-!build/index-template.html
-
 # Runtime data
 pids
 *.pid
@@ -34,6 +29,7 @@ build/Release
 # https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
 node_modules
 
+build/oligrapher-dev.js
 
 # mac stuff
 .DS_Store

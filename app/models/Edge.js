@@ -1,96 +1,49 @@
-const NodeDisplaySettings = require('../NodeDisplaySettings');
-const helpers = require('./helpers/GraphHelpers');
-const _ = require('lodash');
+import merge from 'lodash/merge';
+import Helpers from './Helpers';
 
-var defaults =  {
-  display: {
-    label: 'Edge',
-    scale: 1,
-    status: "normal"
-  }
-};
-
-class Edge {
-  //constructor(EdgeSpecs) -> Edge
-  constructor(specs){
-    this.id = specs.id || helpers.generateId();
-    this.n1 = specs.n1;
-    this.n2 = specs.n2;
-    this.content = specs.content || {};
-    this.display = _.merge({}, defaults.display, specs.display);
+export default class Edge {
+  static defaults() {
+    return {
+      id: Helpers.generateId(),
+      display: { 
+        scale: 1,
+        arrow: false,
+        status: "normal",
+      }      
+    };
   }
 
-  updatePosition(){
-    let x1 = this.n1.display.x;
-    let y1 = this.n1.display.y;
-    let x2 = this.n2.display.x;
-    let y2 = this.n2.display.y;
-    let r1 = this.n1.display.scale * NodeDisplaySettings.circleRadius;
-    let r2 = this.n2.display.scale * NodeDisplaySettings.circleRadius;
+  static setDefaults(edge) {
+    return merge(this.defaults(), edge);
+  }
 
-    // set edge position at midpoint between nodes
-    let ax = this.display.x = (x1 + x2) / 2;
-    let ay = this.display.y = (y1 + y2) / 2;
-
-    let xa, ya, xb, yb;
-
-    if (x1 < x2){
-      xa = x1;
-      ya = y1;
-      xb = x2;
-      yb = y2;
-      this.display.is_reverse = false;
-    } else {
-      xa = x2;
-      ya = y2;
-      xb = x1;
-      yb = y1;
-      this.display.is_reverse = true;
+  static combine(edge1, edge2) {
+    if (!edge2) {
+      return edge1;
     }
 
-    let cx, cy;
-    let n = 0.1;
+    return merge({}, edge1, {
+      display: {
+        label: edge1.display.label + ", " + edge2.display.label,
+        scale: Math.max(edge1.display.scale, edge2.display.scale),
+        arrow: edge1.display.arrow && edge2.display.arrow && (edge1.node1_id == edge2.node1_id && edge1.node2_id == edge2.node2_id),
+        status: this.combineStatuses(edge1.display.status, edge2.display.status)
+      }
+    });
+  }
 
-    if (this.display.cx != null && this.display.cy != null){
-      cx = this.display.cx;
-      cy = this.display.cy;
-    } else {
-      cx = -(ya - ay) * n + ax;
-      cy = (xa - ax) * n + ay;
+  static combineStatuses(status1, status2) {
+    if (status1 == status2) {
+      return status1;      
+    } 
+    else if (status1 == "highlighted" || status2 == "highlighted") {
+      return "highlighted";
     }
-
-    // lines should stop at edge of node circles
-    let sa = this.display.is_reverse ? this.n2.display.scale : this.n1.display.scale;
-    let sb = this.display.is_reverse ? this.n1.display.scale : this.n2.display.scale;
-    let ra = (this.display.is_reverse ? r2 : r1) + (sa * NodeDisplaySettings.circleSpacing);
-    let rb = (this.display.is_reverse ? r1 : r2) + (sb * NodeDisplaySettings.circleSpacing);
-    let dxma = xa - cx;
-    let dyma = ya - cy;
-    let dxmb = xb - cx;
-    let dymb = yb - cy;
-    let rma = Math.sqrt(dxma * dxma + dyma * dyma);
-    let rmb = Math.sqrt(dxmb * dxmb + dymb * dymb);
-    let xma = ra * dxma / rma;
-    let yma = ra * dyma / rma;
-    let xmb = rb * dxmb / rmb;
-    let ymb = rb * dymb / rmb;
-
-    this.display.xa = xa - xma;
-    this.display.ya = ya - yma;
-    this.display.xb = xb - xmb;
-    this.display.yb = yb - ymb;
-    this.display.cx = cx;
-    this.display.cy = cy;
+    else if (status1 == "normal" || status2 == "normal") {
+      return "normal";
+    }
+    else {
+      return "faded";
+    }
   }
 }
-
-module.exports = Edge;
-
-// EdgeSpecs
-// {
-//   id: Int,
-//   n1: {}, Node
-//   n2: {}, Node
-//   content: {},
-//   display: {},
-// }
